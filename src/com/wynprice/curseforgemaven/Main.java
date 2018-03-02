@@ -57,7 +57,7 @@ public class Main
 			return list;
 		}
 		
-		Gui.actiontarget.setText("Downloading files");
+		Gui.actiontarget.setText("Resolving File - " + splitUrl[4]);
 		
 		String projectSlug = splitUrl[4];
 		String urlRead = readURL(url);
@@ -72,8 +72,6 @@ public class Main
 				}
 			}
 		}
-		
-		Gui.actiontarget.setText("Reading files");
 
 		String mavenArtifiactRaw = urlRead.split("<div class=\"info-data overflow-tip\">")[1].split("</div>")[0];
 		mavenArtifiactRaw = mavenArtifiactRaw.substring(0, mavenArtifiactRaw.length() - 4);

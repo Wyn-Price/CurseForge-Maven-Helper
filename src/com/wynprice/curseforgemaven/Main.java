@@ -2,6 +2,7 @@ package com.wynprice.curseforgemaven;
 
 import java.io.InputStream;
 import java.net.URL;
+import java.util.ArrayList;
 
 public class Main 
 {
@@ -27,26 +28,33 @@ public class Main
 		new Thread(() -> 
 		{
 			try {
-				CurseResult result = actuallyRun(url);
-				if(result != null) {
-					Gui.fakeURL.setText("URL: " + result.getURL() + "\nGradle: " + result.getGradle());
+				long millis = System.currentTimeMillis();
+
+				ArrayList<CurseResult> resultList = actuallyRun(url, new ArrayList<>());
+				if(!resultList.isEmpty()) {
+					String output = "";
+					for(CurseResult result : resultList) {
+						output += "URL: " + result.getURL() + "\nGradle: " + result.getGradle() + "\n\n";
+					}
+					Gui.fakeURL.setText(output);
 				}
+				Gui.actiontarget.setText("Finished in " + (System.currentTimeMillis() - millis) + "ms");
+
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}, "Curseforge Thread").start();;
 	}
 	
-	private static CurseResult actuallyRun(String url)  throws Exception
+	private static ArrayList<CurseResult> actuallyRun(String url, ArrayList<CurseResult> list)  throws Exception
 	{
-		long millis = System.currentTimeMillis();
 		String[] splitUrl = url.split("/");
 		if(splitUrl.length != 7 || !splitUrl[0].equals("https:") || !splitUrl[2].equals("minecraft.curseforge.com") || !splitUrl[3].equals("projects") || !splitUrl[5].equals("files") || !splitUrl[6].matches("\\d+")) {
 			if(url.length() > 40)
 				url = url.substring(0, 20) + "..." + url.substring(url.length() - 20, url.length());
 			Gui.actiontarget.setText("Invalid URL: " + url);
 			Gui.fakeURL.setText("Format: https://minecraft.curseforge.com/projects/examplemod/files/12345");
-			return null;
+			return list;
 		}
 		
 		Gui.actiontarget.setText("Downloading files");
@@ -55,17 +63,15 @@ public class Main
 		String urlRead = readURL(url);
 		
 		if(urlRead.contains("<h5>Required Library</h5>")) { //Contains Required files
-			String[] libs = urlRead.split("<h5>Required Library</h5>")[1].split("<ul>")[1].split("</ul>")[0].split("<li class=\"project-tag\">");
+			String[] libList = urlRead.split("<h5>Required Library</h5>")[1].split("<ul>")[1].split("</ul>")[0].split("<li class=\"project-tag\">");
 			int times = 1;
-			Gui.actiontarget.setText("Resolving Dependencies (1/" + (libs.length - 1) + ")");
-			for(String s : libs) {
-				if(s.split("<a href=\"").length > 1) {
-					getLatestURL("https://minecraft.curseforge.com" + s.split("<a href=\"")[1].split("\">")[0], urlRead.split("<h4>Supported Minecraft")[1].split("<ul>")[1].split("</ul>")[0].split("<li>")[1].split("</li>")[0]);
-					Gui.actiontarget.setText("Resolving Dependencies (" + (times++ + 1) + "/" + (libs.length - 1) + ")");
+			for(String lib : libList) {
+				if(lib.split("<a href=\"").length > 1) {
+					Gui.actiontarget.setText("Resolving Dependencies (" + times++ + "/" + (libList.length - 1) + ") - " + lib.split("<div class=\"project-tag-name overflow-tip\">")[1].split("<span>")[1].split("</span>")[0]);
+					getLatestURL("https://minecraft.curseforge.com" + lib.split("<a href=\"")[1].split("\">")[0], urlRead.split("<h4>Supported Minecraft")[1].split("<ul>")[1].split("</ul>")[0].split("<li>")[1].split("</li>")[0], list);
 				}
 			}
 		}
-		
 		
 		Gui.actiontarget.setText("Reading files");
 
@@ -86,27 +92,27 @@ public class Main
 			mavenArtifiact = splitArtifiact[0];
 			version = splitArtifiact[1];
 		}
-		Gui.actiontarget.setText("Finished in " + (System.currentTimeMillis() - millis) + "ms");
 		
 		String mavenClassifier = "";
 		for(String artifact : mavenArtifiactRaw.split("-"))
 			if(!artifact.equals(version) && !artifact.equals(mavenArtifiact))
 				mavenClassifier += artifact + ":";
-		if(mavenClassifier.length() > 0)
+		if(mavenClassifier.length() > 0) {
 			mavenClassifier = mavenClassifier.substring(0, mavenClassifier.length() - 1);
-		return new CurseResult("https://minecraft.curseforge.com/api/maven/" + String.join("/", projectSlug, mavenArtifiact, version, mavenArtifiactRaw) + ".jar", projectSlug + ":" + String.join(":", mavenArtifiact, version, mavenClassifier));
+		}
+		list.add(new CurseResult("https://minecraft.curseforge.com/api/maven/" + String.join("/", projectSlug, mavenArtifiact, version, mavenArtifiactRaw) + ".jar", projectSlug + ":" + String.join(":", mavenArtifiact, version) + (mavenClassifier.isEmpty() ? "" : ":") + mavenClassifier));
+		return list;
 	}
 	
-	private static String getLatestURL(String projectURL, String MCVersion) throws Exception {
+	private static void getLatestURL(String projectURL, String MCVersion, ArrayList<CurseResult> list) throws Exception {
 		String urlRead = readURL(projectURL + "/files");
 		String[] urlReadLibs = urlRead.split("<tr class=\"project-file-list-item\">");
 		for(int i = 1; i < urlReadLibs.length; i++) {
 			if(urlReadLibs[i].split("<span class=\"version-label\">")[1].split("</span>")[0].equals(MCVersion)) {
-				System.out.println(actuallyRun("https://minecraft.curseforge.com" + urlReadLibs[i].split("<a class=\"overflow-tip twitch-link\" href=\"")[1].split("\"")[0]));
+				actuallyRun("https://minecraft.curseforge.com" + urlReadLibs[i].split("<a class=\"overflow-tip twitch-link\" href=\"")[1].split("\"")[0], list);
 				break;
 			}
 		}
-		return "";
 	}
 	
 	private static String readURL(String url) throws Exception {

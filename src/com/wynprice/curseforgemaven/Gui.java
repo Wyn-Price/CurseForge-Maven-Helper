@@ -66,7 +66,7 @@ public class Gui extends Application
         fakeUrlBtn.getChildren().add(fakeURL);
         fakeUrlBtn.setPrefWidth(467);
         
-        fakeUrlBtn.setPrefHeight(60d);
+        fakeUrlBtn.setPrefHeight(500d);
         grid.add(fakeUrlBtn, 0, 3, 3, 1);
         
         button.setOnAction((event) -> {

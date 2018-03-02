@@ -12,7 +12,7 @@ import java.util.ArrayList;
 public class Main 
 {
 	
-	public static final String version = "0.1.0";
+	public static final String version = "0.1.1";
 	
 	public static void main(String[] args)
 	{
@@ -78,8 +78,7 @@ public class Main
 		Gui.actiontarget.setText("Resolving File - " + splitUrl[4]);
 		
 		String projectSlug = splitUrl[4];
-		String urlRead = readURL(url);
-		
+		String urlRead = readURL(url, true);
 		if(urlRead.contains("<h5>Required Library</h5>")) { //Contains Required files
 			String[] libList = urlRead.split("<h5>Required Library</h5>")[1].split("<ul>")[1].split("</ul>")[0].split("<li class=\"project-tag\">");
 			int times = 1;
@@ -93,7 +92,37 @@ public class Main
 
 		String mavenArtifiactRaw = urlRead.split("<div class=\"info-data overflow-tip\">")[1].split("</div>")[0];
 		mavenArtifiactRaw = mavenArtifiactRaw.substring(0, mavenArtifiactRaw.length() - 4);
-		String[] splitArtifiact = mavenArtifiactRaw.split("-");
+		if(!mavenArtifiactRaw.endsWith("-dev")) {
+			String[] devValues = getMavenValues(projectSlug, mavenArtifiactRaw + "-dev");
+			try
+			{
+				readURL("https://minecraft.curseforge.com/api/maven/" + String.join("/", projectSlug, devValues[0], devValues[1], mavenArtifiactRaw + "-dev") + ".jar", false);
+				Gui.actiontarget.setText("Resolving File - " + splitUrl[4] + " - Dev Version");
+				mavenArtifiactRaw += "-dev";
+			}
+			catch (Exception e) 
+			{
+				;
+			}
+		}
+		
+		String[] values = getMavenValues(projectSlug, mavenArtifiactRaw);
+		list.add(new CurseResult(
+				"https://minecraft.curseforge.com/api/maven/" + String.join("/", projectSlug, values[0], values[1], mavenArtifiactRaw) + ".jar",
+				projectSlug + ":" + String.join(":", values[0], values[1]) + (values[2].isEmpty() ? "" : ":") + values[2]));
+		return list;
+	}
+	
+	/**
+	 * Gets the maven values from the file name and projectSlug
+	 * <br>{
+	 * <br>&nbsp&nbsp&nbspmavenArtifiact,
+	 * <br>&nbsp&nbsp&nbspversion,
+	 * <br>&nbsp&nbsp&nbspmavenClassifier
+	 * <br>}
+	 */
+	private static String[] getMavenValues(String projectSlug, String fileName) {
+		String[] splitArtifiact = fileName.split("-");
 		String version = splitArtifiact[splitArtifiact.length - 2];
 		String[] splitArtifiactNonVersion = new String[splitArtifiact.length - 2];
 		for(int i = 0; i < splitArtifiact.length; i++) {
@@ -109,7 +138,7 @@ public class Main
 		}
 		
 		String mavenClassifier = "";
-		for(String artifact : mavenArtifiactRaw.split("-")) {
+		for(String artifact : fileName.split("-")) {
 			if(!artifact.equals(version) && !mavenArtifiact.contains(artifact)) {
 				mavenClassifier += artifact + ":";
 			}
@@ -117,10 +146,7 @@ public class Main
 		if(mavenClassifier.length() > 0) {
 			mavenClassifier = mavenClassifier.substring(0, mavenClassifier.length() - 1);
 		}
-		list.add(new CurseResult(
-				"https://minecraft.curseforge.com/api/maven/" + String.join("/", projectSlug, mavenArtifiact, version, mavenArtifiactRaw) + ".jar",
-				projectSlug + ":" + String.join(":", mavenArtifiact, version) + (mavenClassifier.isEmpty() ? "" : ":") + mavenClassifier));
-		return list;
+		return new String[] {mavenArtifiact, version, mavenClassifier};
 	}
 	
 	/**
@@ -131,7 +157,7 @@ public class Main
 	 * @param page The files page to track. If you're calling this, the page should be 0 or 1. 
 	 */
 	private static void addLatestToList(String projectURL, String MCVersion, ArrayList<CurseResult> list, int page) throws Exception {
-		String urlRead = readURL(projectURL + "/files?page=" + page);
+		String urlRead = readURL(projectURL + "/files?page=" + page, true);
 		if(urlRead.split("<span class=\"b-pagination-item s-active active\">").length > 1 && Integer.valueOf(urlRead.split("<span class=\"b-pagination-item s-active active\">")[1].split("</span>")[0]) < page) {
 			return;
 		}
@@ -148,15 +174,18 @@ public class Main
 	/**
 	 * Used to get the data a URL holds.
 	 * @param url The url to uses
+	 * @param simulate Should the program <u>actually</u> download the file
 	 * @return the data that the url points to. Usally a webpage
 	 */
-	private static String readURL(String url) throws Exception {
+	private static String readURL(String url, boolean simulate) throws Exception {
 		InputStream urlStream = new URL(url).openStream();
 		String urlRead = "";
 		int len = urlStream.read();
-		while(len != -1) {
-			urlRead += (char)len;
-			len = urlStream.read();
+		if(simulate) {
+			while(len != -1) {
+				urlRead += (char)len;
+				len = urlStream.read();
+			}
 		}
 		return urlRead;
 	}

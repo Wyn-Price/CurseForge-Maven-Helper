@@ -32,11 +32,13 @@ public class Main
 
 				ArrayList<CurseResult> resultList = actuallyRun(url, new ArrayList<>());
 				if(!resultList.isEmpty()) {
-					String output = "";
+					String urlOutput = "URL:\n";
+					String forgeGradleOutput = "Gradle:\n";
 					for(CurseResult result : resultList) {
-						output += "URL: " + result.getURL() + "\nGradle: " + result.getGradle() + "\n\n";
+						urlOutput += result.getURL() + "\n";
+						forgeGradleOutput += "deobfCompile \"" + result.getGradle() + "\"\n";
 					}
-					Gui.fakeURL.setText(output);
+					Gui.fakeURL.setText(urlOutput + "\n\n" + forgeGradleOutput);
 				}
 				Gui.actiontarget.setText("Finished in " + (System.currentTimeMillis() - millis) + "ms");
 
@@ -68,7 +70,7 @@ public class Main
 			for(String lib : libList) {
 				if(lib.split("<a href=\"").length > 1) {
 					Gui.actiontarget.setText("Resolving Dependencies (" + times++ + "/" + (libList.length - 1) + ") - " + lib.split("<div class=\"project-tag-name overflow-tip\">")[1].split("<span>")[1].split("</span>")[0]);
-					getLatestURL("https://minecraft.curseforge.com" + lib.split("<a href=\"")[1].split("\">")[0], urlRead.split("<h4>Supported Minecraft")[1].split("<ul>")[1].split("</ul>")[0].split("<li>")[1].split("</li>")[0], list);
+					getLatestURL("https://minecraft.curseforge.com" + lib.split("<a href=\"")[1].split("\">")[0], urlRead.split("<h4>Supported Minecraft")[1].split("<ul>")[1].split("</ul>")[0].split("<li>")[1].split("</li>")[0], list, 0);
 				}
 			}
 		}
@@ -102,15 +104,17 @@ public class Main
 		return list;
 	}
 	
-	private static void getLatestURL(String projectURL, String MCVersion, ArrayList<CurseResult> list) throws Exception {
-		String urlRead = readURL(projectURL + "/files");
+	private static void getLatestURL(String projectURL, String MCVersion, ArrayList<CurseResult> list, int page) throws Exception {
+		String urlRead = readURL(projectURL + "/files?page=" + page);
+		if(urlRead.split("<span class=\"b-pagination-item s-active active\">").length > 1 && Integer.valueOf(urlRead.split("<span class=\"b-pagination-item s-active active\">")[1].split("</span>")[0]) < page)return;
 		String[] urlReadLibs = urlRead.split("<tr class=\"project-file-list-item\">");
 		for(int i = 1; i < urlReadLibs.length; i++) {
 			if(urlReadLibs[i].split("<span class=\"version-label\">")[1].split("</span>")[0].equals(MCVersion)) {
 				actuallyRun("https://minecraft.curseforge.com" + urlReadLibs[i].split("<a class=\"overflow-tip twitch-link\" href=\"")[1].split("\"")[0], list);
-				break;
+				return;
 			}
 		}
+		getLatestURL(projectURL, MCVersion, list, page++);
 	}
 	
 	private static String readURL(String url) throws Exception {

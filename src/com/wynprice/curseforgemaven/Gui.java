@@ -27,14 +27,14 @@ public class Gui extends Application
 	
 	@Override
     public void start(Stage primaryStage) {
-        primaryStage.setTitle("Curseforge API helper + v" + Main.version);
+        primaryStage.setTitle("Curseforge Maven Helper v" + Main.version);
         GridPane grid = new GridPane();
         grid.setAlignment(Pos.CENTER);
         grid.setHgap(10);
         grid.setVgap(10);
         grid.setPadding(new Insets(25, 25, 25, 25));
 
-        Text scenetitle = new Text("Curseforge thing");
+        Text scenetitle = new Text("Curseforge Maven Helper");
         scenetitle.setFont(Font.font("Tahoma", FontWeight.NORMAL, 20));
         
         HBox hbBtn = new HBox(10);
@@ -46,12 +46,15 @@ public class Gui extends Application
         grid.add(userName, 0, 1);
 
         TextField userTextField = new TextField();
-        userTextField.setPrefWidth(300f);
+        userTextField.setPrefWidth(400d);
         grid.add(userTextField, 1, 1);
         
         Button button = new Button();
         button.setText("Go");
-        grid.add(button, 2, 1);
+        HBox hbbutton = new HBox(10);
+        hbbutton.setAlignment(Pos.TOP_RIGHT);
+        hbbutton.getChildren().add(button);
+        grid.add(hbbutton, 2, 1, 1, 1);
         
         actiontarget = new Text();
 		actiontarget.setFill(Color.FIREBRICK);
@@ -64,7 +67,6 @@ public class Gui extends Application
         HBox fakeUrlBtn = new HBox(10);
         fakeUrlBtn.setAlignment(Pos.TOP_CENTER);
         fakeUrlBtn.getChildren().add(fakeURL);
-        fakeUrlBtn.setPrefWidth(467);
         
         fakeUrlBtn.setPrefHeight(500d);
         grid.add(fakeUrlBtn, 0, 3, 3, 1);
@@ -73,7 +75,7 @@ public class Gui extends Application
             Main.run(userTextField.getText());
         });
         
-        Scene scene = new Scene(grid, 700, 500);
+        Scene scene = new Scene(grid, 700, 700);
 
         scene.addEventHandler(KeyEvent.KEY_PRESSED, (key) -> {
             if(key.getCode()==KeyCode.ENTER) {

@@ -110,14 +110,16 @@ public class Main
 		
 		String mavenClassifier = "";
 		for(String artifact : mavenArtifiactRaw.split("-")) {
-			if(!artifact.equals(version) && !artifact.equals(mavenArtifiact)) {
+			if(!artifact.equals(version) && !mavenArtifiact.contains(artifact)) {
 				mavenClassifier += artifact + ":";
 			}
 		}
 		if(mavenClassifier.length() > 0) {
 			mavenClassifier = mavenClassifier.substring(0, mavenClassifier.length() - 1);
 		}
-		list.add(new CurseResult("https://minecraft.curseforge.com/api/maven/" + String.join("/", projectSlug, mavenArtifiact, version, mavenArtifiactRaw) + ".jar", projectSlug + ":" + String.join(":", mavenArtifiact, version) + (mavenClassifier.isEmpty() ? "" : ":") + mavenClassifier));
+		list.add(new CurseResult(
+				"https://minecraft.curseforge.com/api/maven/" + String.join("/", projectSlug, mavenArtifiact, version, mavenArtifiactRaw) + ".jar",
+				projectSlug + ":" + String.join(":", mavenArtifiact, version) + (mavenClassifier.isEmpty() ? "" : ":") + mavenClassifier));
 		return list;
 	}
 	

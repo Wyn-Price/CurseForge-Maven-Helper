@@ -45,3 +45,8 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+*.class
+libs/gson-2.8.2.jar
+*.prefs
+.project
+*.classpath

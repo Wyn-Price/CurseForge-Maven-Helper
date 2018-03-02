@@ -32,7 +32,7 @@ public class Gui extends Application
 	
 	@Override
     public void start(Stage primaryStage) {
-        primaryStage.setTitle("Curseforge Maven Helper v" + Main.version);
+        primaryStage.setTitle("Curseforge Maven Helper v" + Main.version + " by Wyn Price");
         GridPane grid = new GridPane();
         grid.setAlignment(Pos.CENTER);
         grid.setHgap(10);

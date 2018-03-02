@@ -4,6 +4,11 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
 
+/**
+ * The main calculation class.
+ * @author Wyn Price
+ *
+ */
 public class Main 
 {
 	
@@ -20,6 +25,10 @@ public class Main
 		}
 	}
 	
+	/**
+	 * Used to run {@link #calculate(String, ArrayList)} in cleaner way, and to output the results.
+	 * @param url The projects file url to use
+	 */
 	public static void run(String url)
 	{
 		Gui.actiontarget.setText("");
@@ -30,7 +39,7 @@ public class Main
 			try {
 				long millis = System.currentTimeMillis();
 
-				ArrayList<CurseResult> resultList = actuallyRun(url, new ArrayList<>());
+				ArrayList<CurseResult> resultList = calculate(url, new ArrayList<>());
 				if(!resultList.isEmpty()) {
 					String urlOutput = "URL:\n";
 					String forgeGradleOutput = "Gradle:\n";
@@ -48,12 +57,19 @@ public class Main
 		}, "Curseforge Thread").start();;
 	}
 	
-	private static ArrayList<CurseResult> actuallyRun(String url, ArrayList<CurseResult> list)  throws Exception
+	/**
+	 * The Main calculation method. 
+	 * @param url The projects file url to use.
+	 * @param list The list of which to add the results to. Will also be returned
+	 * @return {@code list}
+	 */
+	public static ArrayList<CurseResult> calculate(String url, ArrayList<CurseResult> list)  throws Exception
 	{
 		String[] splitUrl = url.split("/");
 		if(splitUrl.length != 7 || !splitUrl[0].equals("https:") || !splitUrl[2].equals("minecraft.curseforge.com") || !splitUrl[3].equals("projects") || !splitUrl[5].equals("files") || !splitUrl[6].matches("\\d+")) {
-			if(url.length() > 40)
+			if(url.length() > 40) {
 				url = url.substring(0, 20) + "..." + url.substring(url.length() - 20, url.length());
+			}
 			Gui.actiontarget.setText("Invalid URL: " + url);
 			Gui.fakeURL.setText("Format: https://minecraft.curseforge.com/projects/examplemod/files/12345");
 			return list;
@@ -70,7 +86,7 @@ public class Main
 			for(String lib : libList) {
 				if(lib.split("<a href=\"").length > 1) {
 					Gui.actiontarget.setText("Resolving Dependencies (" + times++ + "/" + (libList.length - 1) + ") - " + lib.split("<div class=\"project-tag-name overflow-tip\">")[1].split("<span>")[1].split("</span>")[0]);
-					getLatestURL("https://minecraft.curseforge.com" + lib.split("<a href=\"")[1].split("\">")[0], urlRead.split("<h4>Supported Minecraft")[1].split("<ul>")[1].split("</ul>")[0].split("<li>")[1].split("</li>")[0], list, 0);
+					addLatestToList("https://minecraft.curseforge.com" + lib.split("<a href=\"")[1].split("\">")[0], urlRead.split("<h4>Supported Minecraft")[1].split("<ul>")[1].split("</ul>")[0].split("<li>")[1].split("</li>")[0], list, 0);
 				}
 			}
 		}
@@ -80,12 +96,11 @@ public class Main
 		String[] splitArtifiact = mavenArtifiactRaw.split("-");
 		String version = splitArtifiact[splitArtifiact.length - 2];
 		String[] splitArtifiactNonVersion = new String[splitArtifiact.length - 2];
-		String[] splitArtifactsVersion = new String[2];
-		for(int i = 0; i < splitArtifiact.length; i++)
-			if(i < splitArtifiact.length - 2)
+		for(int i = 0; i < splitArtifiact.length; i++) {
+			if(i < splitArtifiact.length - 2) {
 				splitArtifiactNonVersion[i] = splitArtifiact[i];
-			else
-				splitArtifactsVersion[i - splitArtifiact.length + 2] = splitArtifiact[i];
+			}
+		}
 				
 		String mavenArtifiact = String.join("-", splitArtifiactNonVersion);
 		if(splitArtifiact.length == 2) {
@@ -94,9 +109,11 @@ public class Main
 		}
 		
 		String mavenClassifier = "";
-		for(String artifact : mavenArtifiactRaw.split("-"))
-			if(!artifact.equals(version) && !artifact.equals(mavenArtifiact))
+		for(String artifact : mavenArtifiactRaw.split("-")) {
+			if(!artifact.equals(version) && !artifact.equals(mavenArtifiact)) {
 				mavenClassifier += artifact + ":";
+			}
+		}
 		if(mavenClassifier.length() > 0) {
 			mavenClassifier = mavenClassifier.substring(0, mavenClassifier.length() - 1);
 		}
@@ -104,19 +121,33 @@ public class Main
 		return list;
 	}
 	
-	private static void getLatestURL(String projectURL, String MCVersion, ArrayList<CurseResult> list, int page) throws Exception {
+	/**
+	 * Used to get the latest file from a curseforge project, of a particular minecraft version, then add it to the {@code list}
+	 * @param projectURL The projects url page. This should be the homepage, for example {@link https://minecraft.curseforge.com/projects/secretroomsmod}
+	 * @param MCVersion The minecraft version to use to get the latest version
+	 * @param list A list to add the result to
+	 * @param page The files page to track. If you're calling this, the page should be 0 or 1. 
+	 */
+	private static void addLatestToList(String projectURL, String MCVersion, ArrayList<CurseResult> list, int page) throws Exception {
 		String urlRead = readURL(projectURL + "/files?page=" + page);
-		if(urlRead.split("<span class=\"b-pagination-item s-active active\">").length > 1 && Integer.valueOf(urlRead.split("<span class=\"b-pagination-item s-active active\">")[1].split("</span>")[0]) < page)return;
+		if(urlRead.split("<span class=\"b-pagination-item s-active active\">").length > 1 && Integer.valueOf(urlRead.split("<span class=\"b-pagination-item s-active active\">")[1].split("</span>")[0]) < page) {
+			return;
+		}
 		String[] urlReadLibs = urlRead.split("<tr class=\"project-file-list-item\">");
 		for(int i = 1; i < urlReadLibs.length; i++) {
 			if(urlReadLibs[i].split("<span class=\"version-label\">")[1].split("</span>")[0].equals(MCVersion)) {
-				actuallyRun("https://minecraft.curseforge.com" + urlReadLibs[i].split("<a class=\"overflow-tip twitch-link\" href=\"")[1].split("\"")[0], list);
+				calculate("https://minecraft.curseforge.com" + urlReadLibs[i].split("<a class=\"overflow-tip twitch-link\" href=\"")[1].split("\"")[0], list);
 				return;
 			}
 		}
-		getLatestURL(projectURL, MCVersion, list, page++);
+		addLatestToList(projectURL, MCVersion, list, page++);
 	}
 	
+	/**
+	 * Used to get the data a URL holds.
+	 * @param url The url to uses
+	 * @return the data that the url points to. Usally a webpage
+	 */
 	private static String readURL(String url) throws Exception {
 		InputStream urlStream = new URL(url).openStream();
 		String urlRead = "";

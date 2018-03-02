@@ -1,5 +1,10 @@
 package com.wynprice.curseforgemaven;
 
+/**
+ * A holder class for the results. Holds the URL and the Gradle.
+ * @author Wyn Price
+ *
+ */
 public class CurseResult 
 {
 	private final String URL;

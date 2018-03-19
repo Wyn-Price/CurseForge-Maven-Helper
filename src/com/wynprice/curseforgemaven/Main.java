@@ -12,7 +12,7 @@ import java.util.ArrayList;
 public class Main 
 {
 	
-	public static final String version = "0.1.1";
+	public static final String version = "0.2.0";
 	
 	public static void main(String[] args)
 	{
@@ -25,12 +25,17 @@ public class Main
 		}
 	}
 	
+	private static boolean useOptional = false;
+	
 	/**
 	 * Used to run {@link #calculate(String, ArrayList)} in cleaner way, and to output the results.
 	 * @param url The projects file url to use
 	 */
 	public static void run(String url)
 	{
+		
+		useOptional = Gui.useOptional.isSelected();
+		
 		Gui.actiontarget.setText("");
 		
 		Gui.fakeURL.setText("");
@@ -65,6 +70,11 @@ public class Main
 	 */
 	public static ArrayList<CurseResult> calculate(String url, ArrayList<CurseResult> list)  throws Exception
 	{
+		for(CurseResult result : list) {
+			if(result.getGradle().split(":")[0].equalsIgnoreCase(url.split("/")[4])) {
+				return list;
+			}
+		}
 		String[] splitUrl = url.split("/");
 		if(splitUrl.length != 7 || !splitUrl[0].equals("https:") || !splitUrl[2].equals("minecraft.curseforge.com") || !splitUrl[3].equals("projects") || !splitUrl[5].equals("files") || !splitUrl[6].matches("\\d+")) {
 			if(url.length() > 40) {
@@ -79,15 +89,11 @@ public class Main
 		
 		String projectSlug = splitUrl[4];
 		String urlRead = readURL(url, true);
-		if(urlRead.contains("<h5>Required Library</h5>")) { //Contains Required files
-			String[] libList = urlRead.split("<h5>Required Library</h5>")[1].split("<ul>")[1].split("</ul>")[0].split("<li class=\"project-tag\">");
-			int times = 1;
-			for(String lib : libList) {
-				if(lib.split("<a href=\"").length > 1) {
-					Gui.actiontarget.setText("Resolving Dependencies (" + times++ + "/" + (libList.length - 1) + ") - " + lib.split("<div class=\"project-tag-name overflow-tip\">")[1].split("<span>")[1].split("</span>")[0]);
-					addLatestToList("https://minecraft.curseforge.com" + lib.split("<a href=\"")[1].split("\">")[0], urlRead.split("<h4>Supported Minecraft")[1].split("<ul>")[1].split("</ul>")[0].split("<li>")[1].split("</li>")[0], list, 0);
-				}
-			}
+		
+		downloadLibraries(urlRead, "Required Library", "Dependencies", list);
+		downloadLibraries(urlRead, "Include", "Dependencies", list);		
+		if(useOptional) {
+			downloadLibraries(urlRead, "Optional Library", "Optional Library", list);
 		}
 
 		String mavenArtifiactRaw = urlRead.split("<div class=\"info-data overflow-tip\">")[1].split("</div>")[0];
@@ -111,6 +117,26 @@ public class Main
 				"https://minecraft.curseforge.com/api/maven/" + String.join("/", projectSlug, values[0], values[1], mavenArtifiactRaw) + ".jar",
 				projectSlug + ":" + String.join(":", values[0], values[1]) + (values[2].isEmpty() ? "" : ":") + values[2]));
 		return list;
+	}
+	
+	/**
+	 * Gets the Related Project files and downloades them
+	 * @param urlRead The read URL
+	 * @param splitterText the Name of the project type (Required Library, Embedded Library, stuff like that). <b>THIS MUST BE WHAT IS DISPLAYED ON CURSEFORGE</b>
+	 * @param guiDisplay The text to display to the GUI
+	 * @param list The list of results
+	 */
+	private static void downloadLibraries(String urlRead, String splitterText, String guiDisplay, ArrayList<CurseResult> list) throws Exception {
+		if(urlRead.contains("<h5>" + splitterText + "</h5>")) {
+			String[] libList = urlRead.split("<h5>" + splitterText + "</h5>")[1].split("<ul>")[1].split("</ul>")[0].split("<li class=\"project-tag\">");
+			int times = 1;
+			for(String lib : libList) {
+				if(lib.split("<a href=\"").length > 1) {
+					Gui.actiontarget.setText("Resolving " + guiDisplay + " (" + times++ + "/" + (libList.length - 1) + ") - " + lib.split("<div class=\"project-tag-name overflow-tip\">")[1].split("<span>")[1].split("</span>")[0]);
+					addLatestToList("https://minecraft.curseforge.com" + lib.split("<a href=\"")[1].split("\">")[0], urlRead.split("<h4>Supported Minecraft")[1].split("<ul>")[1].split("</ul>")[0].split("<li>")[1].split("</li>")[0], list, 0);
+				}
+			}
+		}
 	}
 	
 	/**

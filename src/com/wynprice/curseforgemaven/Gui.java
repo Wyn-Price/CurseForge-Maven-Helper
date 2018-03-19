@@ -6,8 +6,10 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.RadioButton;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleButton;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.GridPane;
@@ -28,7 +30,7 @@ public class Gui extends Application
 	
 	public static Text actiontarget = new Text();
 	public static TextArea fakeURL = new TextArea();
-
+	public static RadioButton useOptional = new RadioButton();
 	
 	@Override
     public void start(Stage primaryStage) {
@@ -61,9 +63,14 @@ public class Gui extends Application
         hbbutton.getChildren().add(button);
         grid.add(hbbutton, 2, 1, 1, 1);
         
+        useOptional = new RadioButton("Include Optional Libraries");
+        HBox hbradio = new HBox(10);
+        hbradio.getChildren().add(useOptional);
+        grid.add(hbradio, 1, 2, 1, 1);
+                
         actiontarget = new Text();
 		actiontarget.setFill(Color.FIREBRICK);
-        grid.add(actiontarget, 1, 2);
+        grid.add(actiontarget, 1, 3);
         
         fakeURL = new TextArea();
 		fakeURL.setStyle("-fx-text-fill: #f40000;");
@@ -74,12 +81,12 @@ public class Gui extends Application
         fakeUrlBtn.getChildren().add(fakeURL);
         
         fakeUrlBtn.setPrefHeight(500d);
-        grid.add(fakeUrlBtn, 0, 3, 3, 1);
+        grid.add(fakeUrlBtn, 0, 4, 3, 1);
         
         button.setOnAction((event) -> {
             Main.run(userTextField.getText());
         });
-        
+                
         Scene scene = new Scene(grid, 700, 700);
 
         scene.addEventHandler(KeyEvent.KEY_PRESSED, (key) -> {

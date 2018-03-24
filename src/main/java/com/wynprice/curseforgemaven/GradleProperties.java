@@ -20,7 +20,7 @@ public class GradleProperties extends HashMap<String, List<String>>{
 	
 	public List<String> getRemovedQuotes(Object key) {
 		List<String> ret = new ArrayList<>();
-		List<String> list = this.get(key);
+		List<String> list = this.getOrDefault(key, new ArrayList<>());
 		for(int i = 0; i < list.size(); i++) {
 			String s = list.get(i);
 			if(s.startsWith("\"") && s.endsWith("\"")) {

@@ -2,6 +2,7 @@ package com.wynprice.curseforgemaven;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -230,6 +231,16 @@ public class GradleFileBlock {
 		} else {
 			this.content += name;
 
+		}
+	}
+	
+	public void write(File outFile) throws IOException {
+		if(this.parent != null) {
+			this.parent.write(outFile);
+		} else {
+			PrintWriter pr = new PrintWriter(outFile);
+			pr.write(this.toString());
+			pr.close();
 		}
 	}
 }

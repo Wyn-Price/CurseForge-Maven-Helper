@@ -66,9 +66,9 @@ public class Main
 					Gui.fakeURL.setText(urlOutput + "\n\n" + forgeGradleOutput);
 				}
 				Gui.actiontarget.setText("Finished in " + (System.currentTimeMillis() - millis) + "ms");
-//				if(!resultList.isEmpty()) {
-//					prevList = resultList;
-//				}
+				if(prevList.isEmpty()) {
+					prevList = resultList;
+				}
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -90,7 +90,7 @@ public class Main
         }
         String[] splitUrl = url.split("/");
         if(splitUrl.length != 7 || !splitUrl[0].equals("https:") || !splitUrl[2].equals("minecraft.curseforge.com") || !splitUrl[3].equals("projects") || !splitUrl[5].equals("files") || !splitUrl[6].matches("\\d+")) {
-            if(!prevList.isEmpty()) {
+        	if(!prevList.isEmpty()) {
             	File file = new File(url);
             	if(file.exists() && file.getName().equals("build.gradle")) {
             		GradleFileEditor.editFile(file, prevList);

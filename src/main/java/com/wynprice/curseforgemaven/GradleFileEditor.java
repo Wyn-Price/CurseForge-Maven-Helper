@@ -64,11 +64,19 @@ public class GradleFileEditor {
 			}
 		}
 		
-		List<String> currentList = dep.getProperties().get("deobfCompile");
+		ArrayList<String> currentList = new ArrayList<>();
 		currentList.clear();
 		for(String singleDep : set) {
 			currentList.add("\"" + singleDep + "\"");
 		}		
+		
+		dep.getProperties().put("deobfCompile", currentList);
+		
+		try {
+			overBlock.write(file);
+		} catch (IOException e) {
+			handleException(e);
+		}
 	}
 	
 	

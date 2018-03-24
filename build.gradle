@@ -1,0 +1,12 @@
+apply plugin: 'java'
+
+repositories {
+    mavenCentral()
+	jcenter() 
+	maven {
+		url  "https://jitpack.io"
+	}
+}
+dependencies {
+    compile 'org.jsoup:jsoup:1.8.3'
+}

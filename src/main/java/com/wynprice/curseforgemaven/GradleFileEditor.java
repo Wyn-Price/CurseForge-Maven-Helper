@@ -6,8 +6,8 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.List;
 
 public class GradleFileEditor {
 	
@@ -17,109 +17,60 @@ public class GradleFileEditor {
 	 * @param resultList the list of results to append to the gradle file
 	 */
 	public static void editFile(File file, ArrayList<CurseResult> resultList) {
-		if(!file.exists()) {
-			Gui.actiontarget.setText("Unable to find gradle file at: " + file.getAbsolutePath());
-			return;
-		}
-		
-		String readFile;
+		GradleFileBlock overBlock;
 		try {
-			readFile = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+			overBlock = GradleFileBlock.loadFromFile(file);
 		} catch (IOException e) {
 			handleException(e);
 			return;
-		}	
+		}
 		
-		GradleFileBlock overBlock = new GradleFileBlock(null, "");
-		
-		GradleFileBlock currentBlock = overBlock;
-		for(char c : readFile.toCharArray()) {
-			if(c == '{') {
-				String[] sarray = currentBlock.content.split(" ");
-				String[] nSArray = sarray[sarray.length - 1].split("\n");
-				int spaces = 0;
-				char[] aChar = currentBlock.content.toCharArray();
-				for(int i = aChar.length; i > 0; i--) {
-					char c1 = aChar[i - 1];
-					if(c1 != ' ') {
-						break;
-					} else {
-						spaces ++;
+		mavenapplication:
+		{
+			overBlock.getOrCreateChildren("repositories").get(0).getProperties();
+			for(GradleFileBlock block : overBlock.getOrCreateChildren("repositories").get(0).getChildren("maven")) {
+				GradleProperties props = block.getProperties();
+				if(props.containsKey("url")) {
+					for(String url : props.get("url")) {
+						if(url.contains("minecraft.curseforge.com/api/maven")) {
+							break mavenapplication;
+						}
 					}
 				}
-				String name = nSArray[nSArray.length - 1];
-				String trimmedName = name.replace("\t", "").trim();
-				currentBlock.content = currentBlock.content.substring(0, currentBlock.content.length() - name.length() - spaces);
-				GradleFileBlock newBlock = new GradleFileBlock(currentBlock, trimmedName).setBlockName(name);
-				currentBlock.addChild(newBlock);
-				currentBlock = newBlock;
-			} else if(c == '}') {
-				currentBlock = currentBlock.parent;
-			} else {
-				currentBlock.content += c;
 			}
-		}	
+			GradleFileBlock mavenblock = new GradleFileBlock(overBlock.getOrCreateChildren("repositories").get(0), "maven");
+			GradleProperties props = mavenblock.getProperties();
+			props.putQuote("name", "curseforge maven");
+			props.putQuote("url", "https://minecraft.curseforge.com/api/maven");
+		}
+		List<String> set = new ArrayList<>();
+		GradleFileBlock dep = overBlock.getOrCreateChildren("dependencies").get(0);	
+		ArrayList<CurseResult> usedResults = new ArrayList<>();
+		outer:
+		for(String singleDep : dep.getProperties().getRemovedQuotes("deobfCompile")) {
+			for(CurseResult result : resultList) {
+				if(result.getGradle().split(":")[0].equals(singleDep.split(":")[0])) {
+					usedResults.add(result);
+					set.add(result.getGradle());
+					continue outer;
+				}
+			}
+			set.add(singleDep);
+		}
 		
-		System.out.println(overBlock.getChildren("repositories").get(0).getChildren("maven").size());
+		for(CurseResult result : resultList) {
+			if(!usedResults.contains(result)) {
+				set.add(result.getGradle());
+			}
+		}
+		
+		List<String> currentList = dep.getProperties().get("deobfCompile");
+		currentList.clear();
+		for(String singleDep : set) {
+			currentList.add("\"" + singleDep + "\"");
+		}		
 	}
 	
-	private static class GradleFileBlock {
-		public final ArrayList<GradleFileBlock> children = new ArrayList<>();
-		public String content = "";
-		public final GradleFileBlock parent;
-		public final String name;
-		public String blockName;
-				
-		public GradleFileBlock(GradleFileBlock parent, String name) {
-			this.parent = parent;
-			this.name = name;
-		}
-		
-		public GradleFileBlock setBlockName(String blockName) {
-			this.blockName = blockName;
-			return this;
-		}
-		
-		public ArrayList<GradleFileBlock> getChildren(String childName) {
-			ArrayList<GradleFileBlock> retList = new ArrayList<>();
-			for(GradleFileBlock block : children) {
-				if(block.name.equalsIgnoreCase(childName)) {
-					retList.add(block);
-				}
-			}
-			if(retList.isEmpty()) {
-				GradleFileBlock ret = new GradleFileBlock(this, childName);
-				this.addChild(ret);
-				retList.add(ret);
-			}
-			return retList;
-		}
-		
-		public void addChild(GradleFileBlock child) {
-			this.children.add(child);
-			this.content += "<!wyn!" + child.hashCode() + ">";
-		}
-		
-		@Override
-		public String toString() {
-			String ret = content;
-			String[] aString = content.split("<!wyn!");
-			for(int i = 1; i < aString.length; i++) {
-				int code = Integer.valueOf(aString[i].split(">")[0]);
-				for(GradleFileBlock block : children) {
-					if(block.hashCode() == code) {
-						ret = ret.replace("<!wyn!" + aString[i].split(">")[0] + ">", block.toString());
-						break;
-					}
-				}
-			}
-			if(parent != null) {
-				ret = blockName + " {" + ret + "}";
-			}
-			
-			return ret;
-		}
-	}
 	
 	private static void handleException(Exception e) {
 		Gui.actiontarget.setText("Error" + e.getMessage());

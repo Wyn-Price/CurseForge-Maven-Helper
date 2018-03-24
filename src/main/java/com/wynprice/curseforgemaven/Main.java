@@ -1,5 +1,6 @@
 package com.wynprice.curseforgemaven;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketTimeoutException;
@@ -20,7 +21,7 @@ import org.jsoup.select.Elements;
 public class Main 
 {
 	
-	public static final String version = "0.2.0";
+	public static final String version = "0.3.0";
 	
 	public static void main(String[] args)
 	{
@@ -34,6 +35,8 @@ public class Main
 	}
 	
 	private static boolean useOptional = false;
+	
+	private static ArrayList<CurseResult> prevList = new ArrayList<>();
 	
 	/**
 	 * Used to run {@link #calculate(String, ArrayList)} in cleaner way, and to output the results.
@@ -63,7 +66,9 @@ public class Main
 					Gui.fakeURL.setText(urlOutput + "\n\n" + forgeGradleOutput);
 				}
 				Gui.actiontarget.setText("Finished in " + (System.currentTimeMillis() - millis) + "ms");
-
+//				if(!resultList.isEmpty()) {
+//					prevList = resultList;
+//				}
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -85,7 +90,13 @@ public class Main
         }
         String[] splitUrl = url.split("/");
         if(splitUrl.length != 7 || !splitUrl[0].equals("https:") || !splitUrl[2].equals("minecraft.curseforge.com") || !splitUrl[3].equals("projects") || !splitUrl[5].equals("files") || !splitUrl[6].matches("\\d+")) {
-            if(url.length() > 40) {
+            if(!prevList.isEmpty()) {
+            	File file = new File(url);
+            	if(file.exists() && file.getName().equals("build.gradle")) {
+            		GradleFileEditor.editFile(file, prevList);
+            	}
+            }
+        	if(url.length() > 40) {
                 url = url.substring(0, 20) + "..." + url.substring(url.length() - 20, url.length());
             }
             Gui.actiontarget.setText("Invalid URL: " + url);

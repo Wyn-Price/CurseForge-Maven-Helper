@@ -30,7 +30,7 @@ public class GradleFileEditor {
 			return;
 		}	
 		
-		GradleFileBlock overBlock = new GradleFileBlock(null, "", "");
+		GradleFileBlock overBlock = new GradleFileBlock(null, "");
 		
 		GradleFileBlock currentBlock = overBlock;
 		for(char c : readFile.toCharArray()) {
@@ -50,8 +50,9 @@ public class GradleFileEditor {
 				String name = nSArray[nSArray.length - 1];
 				String trimmedName = name.replace("\t", "").trim();
 				currentBlock.content = currentBlock.content.substring(0, currentBlock.content.length() - name.length() - spaces);
-				currentBlock.content += "<!wyn!" + trimmedName + ">";
-				currentBlock = new GradleFileBlock(currentBlock, name, trimmedName);
+				GradleFileBlock newBlock = new GradleFileBlock(currentBlock, trimmedName).setBlockName(name);
+				currentBlock.addChild(newBlock);
+				currentBlock = newBlock;
 			} else if(c == '}') {
 				currentBlock = currentBlock.parent;
 			} else {
@@ -59,6 +60,7 @@ public class GradleFileEditor {
 			}
 		}	
 		
+		System.out.println(overBlock.getChildren("repositories").get(0).getChildren("maven").size());
 	}
 	
 	private static class GradleFileBlock {
@@ -66,25 +68,36 @@ public class GradleFileEditor {
 		public String content = "";
 		public final GradleFileBlock parent;
 		public final String name;
-		public final String blockName;
+		public String blockName;
 				
-		public GradleFileBlock(GradleFileBlock parent, String blockName, String name) {
-
+		public GradleFileBlock(GradleFileBlock parent, String name) {
 			this.parent = parent;
 			this.name = name;
-			this.blockName = blockName;
-			if(this.parent != null) {
-				this.parent.children.add(this);
-			}
 		}
 		
-		public GradleFileBlock getChild(String childName) {
+		public GradleFileBlock setBlockName(String blockName) {
+			this.blockName = blockName;
+			return this;
+		}
+		
+		public ArrayList<GradleFileBlock> getChildren(String childName) {
+			ArrayList<GradleFileBlock> retList = new ArrayList<>();
 			for(GradleFileBlock block : children) {
 				if(block.name.equalsIgnoreCase(childName)) {
-					return block;
+					retList.add(block);
 				}
 			}
-			return null;
+			if(retList.isEmpty()) {
+				GradleFileBlock ret = new GradleFileBlock(this, childName);
+				this.addChild(ret);
+				retList.add(ret);
+			}
+			return retList;
+		}
+		
+		public void addChild(GradleFileBlock child) {
+			this.children.add(child);
+			this.content += "<!wyn!" + child.hashCode() + ">";
 		}
 		
 		@Override
@@ -92,7 +105,13 @@ public class GradleFileEditor {
 			String ret = content;
 			String[] aString = content.split("<!wyn!");
 			for(int i = 1; i < aString.length; i++) {
-				ret = ret.replace("<!wyn!" + aString[i].split(">")[0] + ">", String.valueOf(getChild(aString[i].split(">")[0]).toString()));
+				int code = Integer.valueOf(aString[i].split(">")[0]);
+				for(GradleFileBlock block : children) {
+					if(block.hashCode() == code) {
+						ret = ret.replace("<!wyn!" + aString[i].split(">")[0] + ">", block.toString());
+						break;
+					}
+				}
 			}
 			if(parent != null) {
 				ret = blockName + " {" + ret + "}";

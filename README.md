@@ -8,10 +8,10 @@ A small program to work with the curseforge maven, figuring out dependencies and
 4. Press the "Go" button, or press enter
 5. If you've selected the "Include Option Libraries" and the project being processed has Option Libraries, A gui will come up asking you to select which ones to enter. Select the ones you desire, then either press the "Continue" button, press enter or close the GUI
 
-##How to set up in workspace
+## How to set up in workspace
 1. Download zip file
 2. Run `gradlew eclipse` or `gradlew idea`
 3. In eclipse, there can be issues with security. This can be solved [here](https://stackoverflow.com/a/32062263)
 
-##Contributing
+## Contributing
 If you want to contribute, go ahead. The only requirement I have is that the code has Same-line braces. (egyptian style)

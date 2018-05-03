@@ -13,6 +13,9 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import javafx.application.Platform;
+import javafx.stage.Stage;
+
 /**
  * The main calculation class.
  * @author Wyn Price
@@ -25,8 +28,7 @@ public class Main
 	
 	public static void main(String[] args)
 	{
-		try
-		{
+		try {
 			Gui.launch(Gui.class, args);
 		}
 		catch (Exception e) {
@@ -41,8 +43,9 @@ public class Main
 	/**
 	 * Used to run {@link #calculate(String, ArrayList)} in cleaner way, and to output the results.
 	 * @param url The projects file url to use
+	 * @param file the build.gradle file to edit, if any
 	 */
-	public static void run(String url)
+	public static void run(String url, File file)
 	{
 		
 		useOptional = Gui.useOptional.isSelected();
@@ -50,11 +53,18 @@ public class Main
 		Gui.actiontarget.setText("");
 		
 		Gui.fakeURL.setText("");
-		new Thread(() -> 
+		Thread thread = new Thread(() -> 
 		{
 			try {
 				long millis = System.currentTimeMillis();
-
+				String[] splitUrl = url.split("/");
+		        if(splitUrl.length != 7 || !splitUrl[0].equals("https:") || !splitUrl[2].equals("minecraft.curseforge.com") || !splitUrl[3].equals("projects") || !splitUrl[5].equals("files") || !splitUrl[6].matches("\\d+")) {
+		        	if(!prevList.isEmpty()) {
+		            	if(file.exists() && file.getName().equals("build.gradle")) {
+		            		GradleFileEditor.editFile(file, prevList);
+		            	}
+		            }
+		        }
 				ArrayList<CurseResult> resultList = calculate(url, new ArrayList<>());
 				if(!resultList.isEmpty()) {
 					String urlOutput = "URL:\n";
@@ -66,13 +76,16 @@ public class Main
 					Gui.fakeURL.setText(urlOutput + "\n\n" + forgeGradleOutput);
 				}
 				Gui.actiontarget.setText("Finished in " + (System.currentTimeMillis() - millis) + "ms");
-				if(prevList.isEmpty()) {
+				if(!resultList.isEmpty()) {
 					prevList = resultList;
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-		}, "Curseforge Thread").start();;
+		}, "Curseforge Thread");
+				
+		thread.setDaemon(true);
+		thread.start();
 	}
 	
 	/**
@@ -111,7 +124,7 @@ public class Main
         downloadLibraries(urlRead, "Required Library", "Dependencies", list);
         downloadLibraries(urlRead, "Include", "Dependencies", list);        
         if(useOptional) {
-            downloadLibraries(urlRead, "Optional Library", "Optional Library", list);
+        	downloadLibrariesWithGui(urlRead, "Optional Library", "Optional Library", list);
         }
 
         String mavenArtifiactRaw = urlRead.select("div.info-data").get(0).html();
@@ -151,8 +164,48 @@ public class Main
     		int times = 1;
     		String mcVersion = urlRead.select("h4:containsOwn(Supported Minecraft) + ul").select("li").html().split("\n")[0];
     		for(Element element : elementList) {
-    			addLatestToList("https://minecraft.curseforge.com" + element.attr("href"), mcVersion, guiDisplay + " (" + times++ + "/" + elementList.size()  + ") - `" + element.select("div.project-tag-name").select("span").html() + "`", list, 0);
+    			addLatestToList("https://minecraft.curseforge.com" + element.attr("href"), mcVersion, guiDisplay + " (" + times++ + "/" + elementList.size()  + ") - `" + element.select("div.project-tag-name").select("span").html() + "`", list, 0, -1);
     		}
+    	}
+    }
+    
+    private static void downloadLibrariesWithGui(Document urlRead, String splitterText, String guiDisplay, ArrayList<CurseResult> list) throws IOException {
+    	Elements outerElements = urlRead.select("h5:containsOwn(" + splitterText + ")");
+    	if(!outerElements.isEmpty()) {
+    		Elements elementList = urlRead.select("h5:containsOwn(" + splitterText + ") + ul").select("a");
+    		int times = 1;
+    		String mcVersion = urlRead.select("h4:containsOwn(Supported Minecraft) + ul").select("li").html().split("\n")[0];
+    		ArrayList<String> slist = new ArrayList<>();
+    		for(Element element : elementList) {
+    			slist.add(element.select("div.project-tag-name").select("span").html());
+    		}
+    		String fileName = urlRead.select("div.info-data").get(0).html();
+    		final OptionalDownloadGui gui = new OptionalDownloadGui(fileName, slist);
+    		Platform.runLater(()->{
+                Stage secondStage = new Stage();
+                try {
+    				gui.start(secondStage);
+    			} catch (Exception e) {
+    				e.printStackTrace();
+    			}
+                secondStage.show();
+             });
+    		
+    		Gui.actiontarget.setText("Awaiting results from gui for " + fileName);
+    		
+    		while(gui.getOptionsToDownload() == null) {
+    			;
+    		}
+    		
+    		Gui.actiontarget.setText("Processing results from gui for " + fileName);
+
+    		for(Element element : elementList) {
+    			String elementName = element.select("div.project-tag-name").select("span").html();
+    			if(gui.getOptionsToDownload().contains(elementName)) {
+        			addLatestToList("https://minecraft.curseforge.com" + element.attr("href"), mcVersion, guiDisplay + " (" + times++ + "/" + gui.getOptionsToDownload().size()  + ") - `" + element.select("div.project-tag-name").select("span").html() + "`", list, 0, -1);
+    			}
+    		}
+    		
     	}
     }
     
@@ -199,8 +252,9 @@ public class Main
      * @param guiMessage The message used for the GUI
      * @param list A list to add the result to
      * @param page The files page to track. If you're calling this, the page should be 0 or 1. 
+     * @param maxpages The max amount of pages. Should be -1 if calling this
      */
-    private static void addLatestToList(String projectURL, String MCVersion, String guiMessage, ArrayList<CurseResult> list, int page) throws IOException {
+    private static void addLatestToList(String projectURL, String MCVersion, String guiMessage, ArrayList<CurseResult> list, int page, int maxpages) throws IOException {
         if(page == 0) {
             page = 1;
         }
@@ -217,9 +271,17 @@ public class Main
         }
         
         
-        Gui.actiontarget.setText("Resolving " + guiMessage + ". Page " + page);
+        Gui.actiontarget.setText("Resolving " + guiMessage + (maxpages < 0 ? "" : ". Page " + page + "/" + maxpages));
         
         Document urlRead = getDocument(projectURL + "/files?page=" + page);
+        Elements pageNumberElements = urlRead.select("ul.b-pagination-list, .paging-list, .j-tablesorter-pager, .j-listing-pagination").select("li.b-pagination-item");
+        try {
+        	if(pageNumberElements.size() >= 2) {
+            	maxpages = Integer.valueOf(pageNumberElements.get(pageNumberElements.size() - 2).select("a").html());
+        	}
+        } catch (NumberFormatException e) {
+        	
+		}
         Elements pageElement = urlRead.select("span.b-pagination-item").select("span.s-active");
         if(!pageElement.isEmpty()) {
             try {
@@ -227,7 +289,8 @@ public class Main
                     return;
                 }
             } catch (NumberFormatException e) {
-                System.out.println("Enable to parse value of " + pageElement.html() + " to an int. Returning on page " + page);
+                System.out.println("Enable to parse value of " + pageElement.html() + " to an int. Returning search on page " + page);
+                return;
             }
         }
 
@@ -250,7 +313,7 @@ public class Main
             }
         }
         
-        addLatestToList(projectURL, MCVersion, guiMessage, list, page+=1);
+        addLatestToList(projectURL, MCVersion, guiMessage, list, page+=1, maxpages);
     }
     
     @SuppressWarnings("static-access")

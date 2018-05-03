@@ -1,10 +1,13 @@
 package com.wynprice.curseforgemaven;
 
+import java.io.File;
+
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.TextArea;
@@ -29,7 +32,7 @@ public class Gui extends Application
 	
 	public static Text actiontarget = new Text();
 	public static TextArea fakeURL = new TextArea();
-	public static RadioButton useOptional = new RadioButton();
+	public static CheckBox useOptional = new CheckBox();
 	
 	@Override
     public void start(Stage primaryStage) {
@@ -39,7 +42,7 @@ public class Gui extends Application
         grid.setHgap(10);
         grid.setVgap(10);
         grid.setPadding(new Insets(25, 25, 25, 25));
-
+        
         Text scenetitle = new Text("Curseforge Maven Helper");
         scenetitle.setFont(Font.font("Tahoma", FontWeight.NORMAL, 20));
         
@@ -55,6 +58,13 @@ public class Gui extends Application
         userTextField.setPrefWidth(400d);
         grid.add(userTextField, 1, 1);
         
+        Label gradleFile = new Label("Gradle File:");
+        grid.add(gradleFile, 0, 2);
+        
+        TextField fileTextField = new TextField();
+        fileTextField.setPrefWidth(400d);
+        grid.add(fileTextField, 1, 2);
+        
         Button button = new Button();
         button.setText("Go");
         HBox hbbutton = new HBox(10);
@@ -62,14 +72,14 @@ public class Gui extends Application
         hbbutton.getChildren().add(button);
         grid.add(hbbutton, 2, 1, 1, 1);
         
-        useOptional = new RadioButton("Include Optional Libraries");
+        useOptional = new CheckBox("Include Optional Libraries");
         HBox hbradio = new HBox(10);
         hbradio.getChildren().add(useOptional);
-        grid.add(hbradio, 1, 2, 1, 1);
+        grid.add(hbradio, 1, 3);
                 
         actiontarget = new Text();
 		actiontarget.setFill(Color.FIREBRICK);
-        grid.add(actiontarget, 1, 3);
+        grid.add(actiontarget, 1, 4);
         
         fakeURL = new TextArea();
 		fakeURL.setStyle("-fx-text-fill: #f40000;");
@@ -80,17 +90,17 @@ public class Gui extends Application
         fakeUrlBtn.getChildren().add(fakeURL);
         
         fakeUrlBtn.setPrefHeight(500d);
-        grid.add(fakeUrlBtn, 0, 4, 3, 1);
+        grid.add(fakeUrlBtn, 0, 5, 3, 1);
         
         button.setOnAction((event) -> {
-            Main.run(userTextField.getText());
+            Main.run(userTextField.getText(), new File(fileTextField.getText()));
         });
                 
         Scene scene = new Scene(grid, 700, 700);
 
         scene.addEventHandler(KeyEvent.KEY_PRESSED, (key) -> {
             if(key.getCode()==KeyCode.ENTER) {
-                Main.run(userTextField.getText());
+                Main.run(userTextField.getText(), new File(fileTextField.getText()));
             }
         });
         

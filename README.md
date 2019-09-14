@@ -1,7 +1,8 @@
+# THIS NO LONGER WORKS. THERE A BETTER METHOD OF DOING THIS [HERE](https://github.com/Wyn-Price/CurseMaven)
+
 # CurseForge-Maven-Helper
 A small program to work with the curseforge maven, figuring out dependencies and gradle links
 
-__THERE A BETTER METHOD OF DOING THIS [HERE](https://github.com/Wyn-Price/CurseMaven)__
 
 ## How to use
 1. Get the URL of the file you want to use. The file should be in the format of https://minecraft.curseforge.com/projects/examplemod/files/12345
